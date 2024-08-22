@@ -1,4 +1,5 @@
 # ollama-translator
+[English](./README-EN.md) [中文版](./README_CN.md)
 
 ollama-translator 翻译器是一个基于 Python 的命令行工具，设计用来使用本地的 Ollama API 模型翻译 Markdown 文件。这个工具支持多种语言，能够在翻译过程中保持 Markdown 文档的格式完整性。
 
