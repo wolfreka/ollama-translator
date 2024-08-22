@@ -15,17 +15,17 @@ ollama-translator 翻译器是一个基于 Python 的命令行工具，设计用
 以下语言代码可用于此工具，对应其完整的语言名称：
 
 ```plaintext
-zh-CN: chinese_simplified
-zh-TW: chinese_traditional
-ru: russian
-de: german
-es: spanish
-fr: french
-ja: japanese
-pt: portuguese
-vi: vietnamese
-ar: arabic
-en: english
+zh-CN: 简体中文
+zh-TW: 繁体中文
+ru: 俄语
+de: 德语
+es: 西班牙语
+fr: 法语
+ja: 日语
+pt: 葡萄牙语
+vi: 越南语
+ar: 阿拉伯语
+en: 英语
 ```
 
 ## 安装
