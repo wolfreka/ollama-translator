@@ -48,32 +48,32 @@ pip install -r requirements.txt
 要使用 Ollama 翻译器，导航到包含 `ollama-translator.py` 的目录，并运行以下命令：
 
 ```bash
-python ollama-translator.py --base-lang [base_language_code] --target-lang [target_language_code] --input-dir [input_directory] [--output-dir [output_directory]]
+python ollama-translator.py --base-lang [base_language_code] --target-lang [target_language_code] --input-dir [input_directory] [--output-dir [output_directory]] [--recursive]
 ```
 
 ### 命令行参数
 
 - `--base-lang`: 要翻译的 Markdown 文件的基础语言代码。默认为 'en'。
 - `--target-lang`: 目标语言代码。这个参数是必需的。
-- `--input-dir`: 包含输入 Markdown 文件的目录路径。这不会递归子目录。
-- `--input-dir-all`: 包含输入 Markdown 文件的目录路径。这会递归子目录。
+- `--input-dir`: 包含输入 Markdown 文件的目录路径。若不设置 `--recursive`，不会递归子目录。
+- `--recursive`: 若设置此参数，将递归处理 `--input-dir` 指定的目录及其子目录中的所有 Markdown 文件。
 - `--output-dir`: 将输出文件保存的目录路径。如果未提供，文件将保存在原文件旁。
 - `--output-origin`: 如果设置，将输出文件保存在源文件的同一目录中。
 
 ## 示例
 
 ### 基本示例
-将特定目录中的所有 Markdown 文件从英语翻译为西班牙语：
+将特定目录中的所有 Markdown 文件从英语翻译为西班牙语，包括子目录中的文件：
 
 ```bash
-python ollama-translator.py --base-lang en --target-lang es --input-dir /path/to/input --output-dir /path/to/output
+python ollama-translator.py --base-lang en --target-lang es --input-dir /path/to/input --output-dir /path/to/output --recursive
 ```
 
 ### 多语言示例
-从中文简体翻译到中文繁体：
+从中文简体翻译到中文繁体，递归处理所有子目录：
 
 ```bash
-python ollama-translator.py --base-lang zh-CN --target-lang zh-TW --input-dir /path/to/input --output-dir /path/to/output
+python ollama-translator.py --base-lang zh-CN --target-lang zh-TW --input-dir /path/to/input --output-dir /path/to/output --recursive
 ```
 
 ## 错误处理
