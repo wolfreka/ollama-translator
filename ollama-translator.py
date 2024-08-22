@@ -8,7 +8,7 @@ API_KEY = os.getenv('OLLAMA_API_KEY', 'ollama')
 API_MODEL = "qwen2:7b"
 API_TEMPERATURE = 0.5
 API_MAX_TOKENS = 4096
-API_ENDPOINT = "/v1/completions"
+API_ENDPOINT = "/v1/chat/completions"
 
 # Language dictionary for full language names
 lang_dict = {
