@@ -70,10 +70,10 @@ python ollama-translator.py --base-lang en --target-lang es --input-dir /path/to
 ```
 
 ### Multilingual Example
-Translate from Simplified Chinese to Traditional Chinese, recursively processing all subdirectories:
+Translate from Simplified Chinese to English, recursively processing all subdirectories:
 
 ```bash
-python ollama-translator.py --base-lang zh-CN --target-lang zh-TW --input-dir /path/to/input --output-dir /path/to/output --recursive
+python ollama-translator.py --base-lang zh-CN --target-lang en --input-dir /path/to/input --output-dir /path/to/output --recursive
 ```
 
 ## Error Handling
