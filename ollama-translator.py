@@ -1,5 +1,5 @@
-import requests
 import os
+import requests
 import argparse
 
 # API configuration variables
@@ -9,6 +9,7 @@ API_MODEL = "qwen2:7b"
 API_TEMPERATURE = 0.5
 API_MAX_TOKENS = 4096
 API_ENDPOINT = "/v1/chat/completions"
+SLICE_LENGTH = 3000  # 每个切片的字符数，需小于 max_tokens
 
 # Language dictionary for full language names
 lang_dict = {
@@ -25,11 +26,34 @@ lang_dict = {
     "en": "english",
 }
 
+def initialize_api_client(api_key):
+    session = requests.Session()
+    session.headers.update({"Authorization": f"Bearer {api_key}"})
+    return session
+
+def split_text(text, max_length):
+    """将文本切分为较小的段落，确保不会切断重要的Markdown结构。"""
+    lines = text.splitlines(True)  # 保留换行符
+    chunks = []
+    current_chunk = ""
+
+    for line in lines:
+        if len(current_chunk) + len(line) > max_length:
+            chunks.append(current_chunk)
+            current_chunk = line
+        else:
+            current_chunk += line
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    return chunks
+
 def translate_full(full_text, input_lang, target_lang, client):
     format = "markdown"
     input_lang_full = lang_dict.get(input_lang, input_lang)
     target_lang_full = lang_dict.get(target_lang, target_lang)
-    
+
     system_prompt = f"You are a translation tool. You receive a text snippet from a file in the following format:\n{format}\n\n. The file is also written in the language:\n{input_lang_full}\n\n. As a translation tool, you will solely return the same string in {target_lang_full} without losing or amending the original formatting. Your translations are accurate, aiming not to deviate from the original structure, content, writing style and tone."
     code_prompt = "Make sure don't translate code blocks in markdown format, and don't translate image paths in :src field, and do translate the alt field from img tag"
 
@@ -39,12 +63,19 @@ def translate_full(full_text, input_lang, target_lang, client):
         {"role": "user", "content": full_text}
     ]
 
-    completion = client.chat.completions.create(
-        model="API_MODEL",
-        messages=messages
+    response = client.post(
+        API_URL + API_ENDPOINT,
+        json={
+            "model": API_MODEL,
+            "messages": messages,
+            "temperature": API_TEMPERATURE,
+            "max_tokens": API_MAX_TOKENS
+        },
+        timeout=30
     )
 
-    return completion.choices[0].message.content
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"]
 
 def translate_file(input_path, output_path, base_lang, target_lang, client):
     print(f"Processing file: {input_path}")
@@ -55,12 +86,25 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
         print(f"Input file not found: {input_path}")
         return
 
-    print(f"Translating file {input_path} to {target_lang}...")
-    try:
-        translated_text = translate_full(file_content, base_lang, target_lang, client)
-    except Exception as e:
-        print(f"Error during translation: {e}")
-        return
+    # 切片并逐段翻译
+    chunks = split_text(file_content, SLICE_LENGTH)
+    translated_chunks = []
+
+    for i, chunk in enumerate(chunks):
+        print(f"Translating chunk {i + 1}/{len(chunks)}...")
+        try:
+            translated_chunk = translate_full(chunk, base_lang, target_lang, client)
+            translated_chunks.append(translated_chunk)
+        except Exception as e:
+            print(f"Error during translation of chunk {i + 1}: {e}")
+            return
+
+    # 拼接翻译后的内容
+    translated_text = ''.join(translated_chunks)
+
+    output_dir = os.path.dirname(output_path)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     try:
         with open(output_path, "w") as f:
@@ -91,20 +135,22 @@ def process_files(directory, files, base_lang, target_lang, input_dir, output_di
             print(f"Skipping non-markdown file: {filename}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Translate markdown files using a local ollama model. Supported languages are: " + ", ".join(f"{k}: {v}" for k, v in lang_dict.items()))
+    parser = argparse.ArgumentParser(description="Translate markdown files using a local Ollama model. Supported languages are: " + ", ".join(f"{k}: {v}" for k, v in lang_dict.items()))
 
     parser.add_argument('--base-lang', metavar='base_lang', default="en", type=str, help='The base language to translate from. Choose from: ' + ', '.join(lang_dict.keys()))
     parser.add_argument('--target-lang', metavar='target_lang', type=str, required=True, help='The target language to translate to. Choose from: ' + ', '.join(lang_dict.keys()))
-    parser.add_argument('--input-dir', metavar='input directory', type=str, help='Path to the directory containing input files, optionally recurses through subdirectories.')
+    parser.add_argument('--input-dir', metavar='input directory', type=str, required=True, help='Path to the directory containing input files, optionally recurses through subdirectories.')
     parser.add_argument('--recursive', action='store_true', help='If set, recurses through subdirectories within the input directory.')
     parser.add_argument('--output-dir', metavar='output directory', type=str, help='Path to the directory where output files will be saved')
     parser.add_argument('--output-origin', action='store_true', help='Save output files to the same directory as the source files')
-    parser.add_argument('--api-client', metavar='api_client', type=str, help='API client for making translation requests')
 
     args = parser.parse_args()
 
-    # Here, you would initialize your API client based on args.api_client or another method.
-    client = initialize_api_client(args.api_client)
+    if args.target_lang not in lang_dict:
+        print(f"Unsupported target language: {args.target_lang}")
+        return
+
+    client = initialize_api_client(API_KEY)
 
     output_dir = None if args.output_origin else args.output_dir
 
@@ -113,4 +159,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
