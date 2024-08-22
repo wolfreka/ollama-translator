@@ -9,7 +9,6 @@ API_MODEL = "qwen2:7b"
 API_TEMPERATURE = 0.5
 API_MAX_TOKENS = 4096
 API_ENDPOINT = "/v1/chat/completions"
-SLICE_LENGTH = 3000  # 每个切片的字符数，需小于 max_tokens
 
 # Language dictionary for full language names
 lang_dict = {
@@ -31,18 +30,27 @@ def initialize_api_client(api_key):
     session.headers.update({"Authorization": f"Bearer {api_key}"})
     return session
 
-def split_text(text, max_length):
-    """将文本切分为较小的段落，确保不会切断重要的Markdown结构。"""
+def count_tokens(text):
+    """简化的token计算函数，假设一个token大约是4个字符。实际项目中可以更精准。"""
+    return len(text) // 4
+
+def split_text(text, max_tokens):
+    """根据最大tokens限制，将文本分割为较小的片段，每片段以段落或句子为单位结束。"""
     lines = text.splitlines(True)  # 保留换行符
     chunks = []
     current_chunk = ""
+    current_tokens = 0
 
     for line in lines:
-        if len(current_chunk) + len(line) > max_length:
+        line_tokens = count_tokens(line)
+        if current_tokens + line_tokens > max_tokens:
+            # 到达最大tokens限制时，结束当前切片
             chunks.append(current_chunk)
             current_chunk = line
+            current_tokens = line_tokens
         else:
             current_chunk += line
+            current_tokens += line_tokens
 
     if current_chunk:
         chunks.append(current_chunk)
@@ -87,7 +95,7 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
         return
 
     # 切片并逐段翻译
-    chunks = split_text(file_content, SLICE_LENGTH)
+    chunks = split_text(file_content, API_MAX_TOKENS)
     translated_chunks = []
 
     for i, chunk in enumerate(chunks):
