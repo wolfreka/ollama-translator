@@ -87,10 +87,14 @@ def translate_full(full_text, input_lang, target_lang, client):
 def translate_file(input_path, output_path, base_lang, target_lang, client):
     print(f"Processing file: {input_path}")
     try:
-        with open(input_path, "r") as f:
+        # force utf-8 codec open file
+        with open(input_path, "r", encoding="utf-8") as f:
             file_content = f.read()
     except FileNotFoundError:
         print(f"Input file not found: {input_path}")
+        return
+    except UnicodeDecodeError:
+        print(f"Could not decode file {input_path} using utf-8 encoding.")
         return
 
     # Split the content into chunks and translate each chunk
@@ -114,7 +118,7 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
         os.makedirs(output_dir)
 
     try:
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(translated_text)
         print(f"Translation saved to {output_path}")
     except IOError:
