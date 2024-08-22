@@ -36,14 +36,16 @@ def count_tokens(text):
     """Simplified token counting function."""
     return len(text) // 4
 
-def split_text(text, max_tokens):
+def split_text(text, max_tokens, split_progress):
     """Split text into smaller chunks ensuring that each chunk ends at a sentence boundary."""
     lines = text.splitlines(True)  # Keep line breaks
     chunks = []
     current_chunk = ""
     current_tokens = 0
 
-    for line in lines:
+    split_progress.total = len(lines)  # 设置进度条的总数
+
+    for line in tqdm(lines, desc="Calculating splits", leave=False, position=1):
         line_tokens = count_tokens(line)
         if current_tokens + line_tokens > max_tokens:
             chunks.append(current_chunk)
@@ -52,11 +54,19 @@ def split_text(text, max_tokens):
         else:
             current_chunk += line
             current_tokens += line_tokens
+        split_progress.update(1)  # 更新进度条
 
     if current_chunk:
         chunks.append(current_chunk)
 
     return chunks
+
+def simulate_progress_bar(description, duration=0.5, position=2):
+    """Simulates a progress bar for a given duration."""
+    with tqdm(total=100, desc=description, leave=False, position=position) as pbar:
+        for _ in range(100):
+            time.sleep(duration / 100)
+            pbar.update(1)
 
 def translate_full(full_text, input_lang, target_lang, client):
     format = "markdown"
@@ -86,7 +96,7 @@ def translate_full(full_text, input_lang, target_lang, client):
     elapsed_time = time.time() - start_time
     return response.json()["choices"][0]["message"]["content"], elapsed_time
 
-def translate_file(input_path, output_path, base_lang, target_lang, client):
+def translate_file(input_path, output_path, base_lang, target_lang, client, file_progress):
     print(f"Processing file: {input_path}")
     try:
         start_time = time.time()
@@ -101,15 +111,20 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
         print(f"Could not decode file {input_path} using utf-8 encoding.")
         return
 
+    # 模拟切片计算的进度条
+    simulate_progress_bar("Preparing to split text")
+
+    split_progress = tqdm(total=0, desc="Splitting text", leave=False, position=3)
     start_time = time.time()
-    chunks = split_text(file_content, API_MAX_TOKENS)
+    chunks = split_text(file_content, API_MAX_TOKENS, split_progress)
     elapsed_time = time.time() - start_time
+    split_progress.close()
     print(f"Splitting step: {elapsed_time:.2f} seconds")
     
     translated_chunks = []
     total_translation_time = 0
 
-    for i, chunk in enumerate(tqdm(chunks, desc="Translating chunks")):
+    for i, chunk in enumerate(tqdm(chunks, desc="Translating chunks", leave=False, position=4)):
         translated_chunk, translation_time = translate_full(chunk, base_lang, target_lang, client)
         translated_chunks.append(translated_chunk)
         total_translation_time += translation_time
@@ -131,27 +146,37 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
         print(f"Translation saved to {output_path}")
     except IOError:
         print(f"Cannot write to output file: {output_path}")
+    
+    file_progress.update(1)  # 更新文件处理进度条
+
+def scan_directory(input_dir):
+    """Scan the directory and count the total number of markdown files."""
+    all_files = []
+    for root, dirs, files in os.walk(input_dir):
+        for file in files:
+            if file.endswith(".md"):
+                all_files.append(os.path.join(root, file))
+    return all_files
 
 def process_directory(input_dir, output_dir, base_lang, target_lang, recursive, client):
-    if recursive:
-        for root, dirs, files in os.walk(input_dir):
-            process_files(root, files, base_lang, target_lang, input_dir, output_dir, client)
-    else:
-        files = os.listdir(input_dir)
-        process_files(input_dir, files, base_lang, target_lang, input_dir, output_dir, client)
+    # 扫描文件夹并展示文件数量
+    print("Scanning directory for markdown files...")
+    all_files = scan_directory(input_dir)
+    
+    total_files = len(all_files)
+    print(f"Total markdown files found: {total_files}")
 
-def process_files(directory, files, base_lang, target_lang, input_dir, output_dir, client):
-    for filename in tqdm(files, desc="Processing files"):
-        if filename.endswith(".md"):
-            input_path = os.path.join(directory, filename)
-            if output_dir:
-                relative_path = os.path.relpath(input_path, input_dir)
-                output_path = os.path.join(output_dir, relative_path.replace(".md", f".{target_lang}.md"))
-            else:
-                output_path = input_path.replace(".md", f".{target_lang}.md")
-            translate_file(input_path, output_path, base_lang, target_lang, client)
+    file_progress = tqdm(total=total_files, desc="Processing files", position=0)
+
+    for file_path in all_files:
+        relative_path = os.path.relpath(file_path, input_dir)
+        if output_dir:
+            output_path = os.path.join(output_dir, relative_path.replace(".md", f".{target_lang}.md"))
         else:
-            print(f"Skipping non-markdown file: {filename}")
+            output_path = file_path.replace(".md", f".{target_lang}.md")
+        translate_file(file_path, output_path, base_lang, target_lang, client, file_progress)
+
+    file_progress.close()
 
 def main():
     parser = argparse.ArgumentParser(description="Translate markdown files using a local Ollama model. Supported languages are: " + ", ".join(f"{k}: {v}" for k, v in lang_dict.items()))
