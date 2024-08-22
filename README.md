@@ -83,4 +83,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 ### Notes:
 - Ensure that the repository URL (`https://github.com/wolfreka/ollama-translator.git`) is replaced with the actual URL of your GitHub repository.
 - Modify any other specifics such as the `python` command if your environment requires a different interpreter like `python3`.
-- This document assumes the existence of a `requirements.txt` file for managing dependencies.
+- `requirements.txt` file for managing dependencies.
