@@ -1,5 +1,5 @@
 # ollama-translator
-[English](./README-EN.md) [中文版](./README_CN.md)
+[English](https://github.com/wolfreka/ollama-translator/edit/main/README.md) [中文版](https://github.com/wolfreka/ollama-translator/edit/main/README-CN.md)
 
 ollama-translator is a Python-based command-line tool designed to translate Markdown files using a local Ollama API model. This tool supports multiple languages and maintains the formatting integrity of Markdown documents during translation.
 
