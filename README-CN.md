@@ -70,10 +70,10 @@ python ollama-translator.py --base-lang en --target-lang es --input-dir /path/to
 ```
 
 ### 多语言示例
-从中文简体翻译到中文繁体，递归处理所有子目录：
+从中文简体翻译到英文，递归处理所有子目录：
 
 ```bash
-python ollama-translator.py --base-lang zh-CN --target-lang zh-TW --input-dir /path/to/input --output-dir /path/to/output --recursive
+python ollama-translator.py --base-lang zh-CN --target-lang en --input-dir /path/to/input --output-dir /path/to/output --recursive
 ```
 
 ## 错误处理
