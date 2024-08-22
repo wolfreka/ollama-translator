@@ -7,7 +7,7 @@ API_URL = "http://localhost:11434"
 API_KEY = os.getenv('OLLAMA_API_KEY', 'ollama')
 API_MODEL = "qwen2:7b"
 API_TEMPERATURE = 0.5
-API_MAX_TOKENS = 4096
+API_MAX_TOKENS = 1024
 API_ENDPOINT = "/v1/chat/completions"
 
 # Language dictionary for full language names
@@ -31,12 +31,12 @@ def initialize_api_client(api_key):
     return session
 
 def count_tokens(text):
-    """简化的token计算函数，假设一个token大约是4个字符。实际项目中可以更精准。"""
+    """Simplified token counting function."""
     return len(text) // 4
 
 def split_text(text, max_tokens):
-    """根据最大tokens限制，将文本分割为较小的片段，每片段以段落或句子为单位结束。"""
-    lines = text.splitlines(True)  # 保留换行符
+    """Split text into smaller chunks ensuring that each chunk ends at a sentence boundary."""
+    lines = text.splitlines(True)  # Keep line breaks
     chunks = []
     current_chunk = ""
     current_tokens = 0
@@ -44,7 +44,6 @@ def split_text(text, max_tokens):
     for line in lines:
         line_tokens = count_tokens(line)
         if current_tokens + line_tokens > max_tokens:
-            # 到达最大tokens限制时，结束当前切片
             chunks.append(current_chunk)
             current_chunk = line
             current_tokens = line_tokens
@@ -94,7 +93,7 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
         print(f"Input file not found: {input_path}")
         return
 
-    # 切片并逐段翻译
+    # Split the content into chunks and translate each chunk
     chunks = split_text(file_content, API_MAX_TOKENS)
     translated_chunks = []
 
@@ -107,7 +106,7 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
             print(f"Error during translation of chunk {i + 1}: {e}")
             return
 
-    # 拼接翻译后的内容
+    # Concatenate translated chunks
     translated_text = ''.join(translated_chunks)
 
     output_dir = os.path.dirname(output_path)
