@@ -95,8 +95,8 @@ def main():
 
     parser.add_argument('--base-lang', metavar='base_lang', default="en", type=str, help='The base language to translate from. Choose from: ' + ', '.join(lang_dict.keys()))
     parser.add_argument('--target-lang', metavar='target_lang', type=str, required=True, help='The target language to translate to. Choose from: ' + ', '.join(lang_dict.keys()))
-    parser.add_argument('--input-dir', metavar='input directory', type=str, help='Path to the directory containing input files, does not recurse')
-    parser.add_argument('--input-dir-all', metavar='input directory all', type=str, help='Path to the directory containing input files, recurses through subdirectories')
+    parser.add_argument('--input-dir', metavar='input directory', type=str, help='Path to the directory containing input files, optionally recurses through subdirectories.')
+    parser.add_argument('--recursive', action='store_true', help='If set, recurses through subdirectories within the input directory.')
     parser.add_argument('--output-dir', metavar='output directory', type=str, help='Path to the directory where output files will be saved')
     parser.add_argument('--output-origin', action='store_true', help='Save output files to the same directory as the source files')
     parser.add_argument('--api-client', metavar='api_client', type=str, help='API client for making translation requests')
@@ -106,15 +106,11 @@ def main():
     # Here, you would initialize your API client based on args.api_client or another method.
     client = initialize_api_client(args.api_client)
 
-    if args.output_origin:
-        output_dir = None
-    else:
-        output_dir = args.output_dir
+    output_dir = None if args.output_origin else args.output_dir
 
     if args.input_dir:
-        process_directory(args.input_dir, output_dir, args.base_lang, args.target_lang, False, client)
-    if args.input_dir_all:
-        process_directory(args.input_dir_all, output_dir, args.base_lang, args.target_lang, True, client)
+        process_directory(args.input_dir, output_dir, args.base_lang, args.target_lang, args.recursive, client)
 
 if __name__ == '__main__':
     main()
+
