@@ -84,20 +84,16 @@ def translate_full(full_text, input_lang, target_lang, client):
         timeout=30
     )
     elapsed_time = time.time() - start_time
-    print(f"\nTranslation step: {elapsed_time:.2f} seconds")
-    
-    response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
+    return response.json()["choices"][0]["message"]["content"], elapsed_time
 
 def translate_file(input_path, output_path, base_lang, target_lang, client):
     print(f"Processing file: {input_path}")
     try:
-        # force utf-8 codec open file
         start_time = time.time()
         with open(input_path, "r", encoding="utf-8") as f:
             file_content = f.read()
         elapsed_time = time.time() - start_time
-        print(f"\nFile read step: {elapsed_time:.2f} seconds")
+        print(f"File read step: {elapsed_time:.2f} seconds")
     except FileNotFoundError:
         print(f"Input file not found: {input_path}")
         return
@@ -105,24 +101,21 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
         print(f"Could not decode file {input_path} using utf-8 encoding.")
         return
 
-    # Split the content into chunks and translate each chunk
     start_time = time.time()
     chunks = split_text(file_content, API_MAX_TOKENS)
     elapsed_time = time.time() - start_time
-    print(f"\nSplitting step: {elapsed_time:.2f} seconds")
+    print(f"Splitting step: {elapsed_time:.2f} seconds")
     
     translated_chunks = []
+    total_translation_time = 0
 
-    for i, chunk in enumerate(tqdm(chunks, desc="Translating chunks\n")):
-        print(f"Translating chunk {i + 1}/{len(chunks)}...")
-        try:
-            translated_chunk = translate_full(chunk, base_lang, target_lang, client)
-            translated_chunks.append(translated_chunk)
-        except Exception as e:
-            print(f"Error during translation of chunk {i + 1}: {e}")
-            return
+    for i, chunk in enumerate(tqdm(chunks, desc="Translating chunks")):
+        translated_chunk, translation_time = translate_full(chunk, base_lang, target_lang, client)
+        translated_chunks.append(translated_chunk)
+        total_translation_time += translation_time
 
-    # Concatenate translated chunks
+    print(f"Total translation time: {total_translation_time:.2f} seconds")
+
     translated_text = ''.join(translated_chunks)
 
     output_dir = os.path.dirname(output_path)
@@ -134,7 +127,7 @@ def translate_file(input_path, output_path, base_lang, target_lang, client):
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(translated_text)
         elapsed_time = time.time() - start_time
-        print(f"\nFile write step: {elapsed_time:.2f} seconds")
+        print(f"File write step: {elapsed_time:.2f} seconds")
         print(f"Translation saved to {output_path}")
     except IOError:
         print(f"Cannot write to output file: {output_path}")
@@ -148,7 +141,7 @@ def process_directory(input_dir, output_dir, base_lang, target_lang, recursive, 
         process_files(input_dir, files, base_lang, target_lang, input_dir, output_dir, client)
 
 def process_files(directory, files, base_lang, target_lang, input_dir, output_dir, client):
-    for filename in tqdm(files, desc="Processing files\n"):
+    for filename in tqdm(files, desc="Processing files"):
         if filename.endswith(".md"):
             input_path = os.path.join(directory, filename)
             if output_dir:
